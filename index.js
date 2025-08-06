@@ -34,7 +34,7 @@ const client = new Client({
 // CONFIGURAÇÕES
 const canalEnvioId = "1402769050718699562"; // canal onde os formulários serão enviados
 const cargoAprovadorId = "1402768862356836514"; // cargo dos aprovadores
-const cargoHavenaId = "1402768579600613386"; // cargo padrão havena
+const cargoHavenaId = "1402768881554292888"; // cargo padrão havena
 
 const cargoGuarnicoes = {
   Polícia: "1402768867637330091",
@@ -43,7 +43,6 @@ const cargoGuarnicoes = {
   CORE: "1402768871810924574",
   PRN: "1402768872863563927",
   SPF: "1402768874222522519",
-  "Polícia Havena": "1402768874222522519",
 };
 
 client.guarnicoesSelecionadas = new Map();
