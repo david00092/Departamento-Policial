@@ -78,7 +78,7 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       await interaction.reply({
-        content: "<a:13818700276151091622:1402864885196652555> Escolha sua guarnição antes de preencher o contrato:",
+        content: "🔰 Escolha sua guarnição antes de preencher o contrato:",
         components: [guarnicaoMenu],
         ephemeral: true,
       });
@@ -141,7 +141,7 @@ client.on("interactionCreate", async (interaction) => {
         client.guarnicoesSelecionadas.get(interaction.user.id) || "Não definida";
 
       const embed = new EmbedBuilder()
-        .setTitle("<:13411143342894612991:1402866926300037170> Novo Contrato Recebido!")
+        .setTitle("📥 Novo Contrato Recebido!")
         .setColor("#FF004C")
         .setThumbnail(interaction.guild.iconURL())
         .addFields(
@@ -381,19 +381,19 @@ client.on("messageCreate", async (message) => {
     const row = new ActionRowBuilder().addComponents(botaoContrato);
 
     const embed = new EmbedBuilder()
-      .setTitle("<a:13818700276151091622:1402864885196652555> Sistema de Recrutamento - Departamento Havena")
+      .setTitle("📘 Sistema de Recrutamento - Departamento Havena")
       .setDescription(
         `
 👮‍♂️ **Foi recrutado em game?**  
 Clique no botão abaixo para preencher seu contrato.
 
-> <:13411143342894612991:1402866926300037170> Preencha com atenção! Dados incorretos atrasam sua aprovação.
+> ⚠️ Preencha com atenção! Dados incorretos atrasam sua aprovação.
         `,
       )
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
       .setImage(
-        "https://i.postimg.cc/YCYqsWkn/Banner-marketing-site-estrat-gia-digital-roxo-branco-azul-1.gif",
+        "https://i.postimg.cc/4dGJv9ZV/White-Minimalist-Corporate-Personal-Profile-Linked-In-Banner.png",
       )
       .setFooter({
         text: "Departamento Havena • Sistema de Contrato",
