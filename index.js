@@ -186,7 +186,7 @@ client.on("interactionCreate", async (interaction) => {
 
     if (cargoGuarnicao) await membro.roles.add(cargoGuarnicao).catch(() => null);
     await membro.roles.add(cargoHavenaId).catch(() => null);
-    await membro.setNickname(`[ALN] ${nome} | ${membro.id}`).catch(() => null);
+await membro.setNickname(`[ALN] ${nome} | ${id}`).catch(() => null);
 
     const embedAprovado = EmbedBuilder.from(embed)
       .setTitle("✅ Membro Aprovado com Sucesso!")
