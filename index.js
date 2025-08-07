@@ -83,7 +83,7 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // Modal após guarnição
+  // Modal após seleção da guarnição
   if (
     interaction.isStringSelectMenu() &&
     interaction.customId === "guarnicao_select"
@@ -123,7 +123,7 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // Envio do formulário
+  // Envio do formulário modal
   if (
     interaction.isModalSubmit() &&
     interaction.customId === "modal_formulario"
@@ -141,7 +141,6 @@ client.on("interactionCreate", async (interaction) => {
       .setThumbnail(interaction.guild.iconURL())
       .addFields(
         { name: "👤 Usuário", value: `<@${interaction.user.id}>`, inline: true },
-        { name: "🆔 ID", value: `\`${interaction.user.id}\``, inline: true },
         { name: "📝 Nome", value: `\`${nome}\``, inline: true },
         { name: "🪪 Passaporte", value: `\`${passaporte}\``, inline: true },
         { name: "🎖️ Guarnição", value: `\`${guarnicao}\``, inline: true },
@@ -181,12 +180,15 @@ client.on("interactionCreate", async (interaction) => {
 
     const embed = interaction.message.embeds[0];
     const nome = embed.fields.find(f => f.name === "📝 Nome")?.value.replace(/`/g, "");
+    const passaporte = embed.fields.find(f => f.name === "🪪 Passaporte")?.value.replace(/`/g, "");
     const guarnicao = embed.fields.find(f => f.name === "🎖️ Guarnição")?.value.replace(/`/g, "");
     const cargoGuarnicao = cargoGuarnicoes[guarnicao];
 
     if (cargoGuarnicao) await membro.roles.add(cargoGuarnicao).catch(() => null);
     await membro.roles.add(cargoHavenaId).catch(() => null);
-await membro.setNickname(`[ALN] ${nome} | ${passaporte}`).catch(() => null);
+
+    // Apelido somente com nome e passaporte, sem ID Discord
+    await membro.setNickname(`[ALN] ${nome} | ${passaporte}`).catch(() => null);
 
     const embedAprovado = EmbedBuilder.from(embed)
       .setTitle("✅ Membro Aprovado com Sucesso!")
@@ -230,9 +232,14 @@ await membro.setNickname(`[ALN] ${nome} | ${passaporte}`).catch(() => null);
 
   // Abrir ticket
   if (interaction.isButton() && interaction.customId === "abrir_ticket") {
-    const existing = interaction.guild.channels.cache.find(c => c.name === `ticket-${interaction.user.id}`);
+    const existing = interaction.guild.channels.cache.find(
+      (c) => c.name === `ticket-${interaction.user.id}`
+    );
     if (existing) {
-      await interaction.reply({ content: `📌 Você já tem um ticket: ${existing}`, ephemeral: true });
+      await interaction.reply({
+        content: `📌 Você já tem um ticket: ${existing}`,
+        ephemeral: true,
+      });
       return;
     }
 
@@ -242,8 +249,14 @@ await membro.setNickname(`[ALN] ${nome} | ${passaporte}`).catch(() => null);
       parent: categoriaTicketsId,
       permissionOverwrites: [
         { id: interaction.guild.id, deny: [PermissionFlagsBits.ViewChannel] },
-        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
-        { id: cargoEquipeTicketsId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
+        {
+          id: interaction.user.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+        },
+        {
+          id: cargoEquipeTicketsId,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+        },
       ],
     });
 
@@ -262,7 +275,11 @@ await membro.setNickname(`[ALN] ${nome} | ${passaporte}`).catch(() => null);
       .setFooter({ text: "Departamento Havena • Suporte" })
       .setTimestamp();
 
-    await canal.send({ content: `<@&${cargoEquipeTicketsId}>`, embeds: [embedTicket], components: [row] });
+    await canal.send({
+      content: `<@&${cargoEquipeTicketsId}>`,
+      embeds: [embedTicket],
+      components: [row],
+    });
     await interaction.reply({ content: `✅ Ticket criado: ${canal}`, ephemeral: true });
   }
 
@@ -287,10 +304,15 @@ client.on("messageCreate", async (message) => {
 
     const embed = new EmbedBuilder()
       .setTitle("📘 Sistema de Recrutamento - Departamento Havena")
-      .setDescription("👮‍♂️ Foi recrutado em game?\nClique abaixo para preencher seu contrato.\n> ⚠️ Preencha com atenção!")
+      .setDescription(
+        "👮‍♂️ Foi recrutado em game?\nClique abaixo para preencher seu contrato.\n> ⚠️ Preencha com atenção!"
+      )
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
-      .setFooter({ text: "Departamento Havena • Sistema de Contrato", iconURL: client.user.displayAvatarURL() });
+      .setFooter({
+        text: "Departamento Havena • Sistema de Contrato",
+        iconURL: client.user.displayAvatarURL(),
+      });
 
     await message.reply({ embeds: [embed], components: [row] });
   }
@@ -308,7 +330,10 @@ client.on("messageCreate", async (message) => {
       .setDescription("❓ Está com dúvida ou problema?\nClique abaixo para abrir um ticket privado.")
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
-      .setFooter({ text: "Departamento Havena • Atendimento via Ticket", iconURL: client.user.displayAvatarURL() });
+      .setFooter({
+        text: "Departamento Havena • Atendimento via Ticket",
+        iconURL: client.user.displayAvatarURL(),
+      });
 
     await message.reply({ embeds: [embed], components: [row] });
   }
