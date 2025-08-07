@@ -32,9 +32,11 @@ const client = new Client({
 });
 
 // CONFIGURAÇÕES
-const canalEnvioId = "1402769050718699562"; // canal onde os formulários serão enviados
-const cargoAprovadorId = "1402768862356836514"; // cargo dos aprovadores
-const cargoHavenaId = "1402768881554292888"; // cargo padrão havena
+const canalEnvioId = "1402769050718699562";
+const cargoAprovadorId = "1402768862356836514";
+const cargoHavenaId = "1402768881554292888";
+const categoriaTicketsId = "SEU_ID_DA_CATEGORIA_AQUI";
+const cargoEquipeTicketsId = "SEU_ID_EQUIPE_TICKETS";
 
 const cargoGuarnicoes = {
   Polícia: "1402768867637330091",
@@ -54,14 +56,12 @@ client.once("ready", () => {
 // Autorole
 client.on("guildMemberAdd", async (member) => {
   const cargo = member.guild.roles.cache.get(cargoHavenaId);
-  if (cargo) {
-    await member.roles.add(cargo).catch(() => null);
-  }
+  if (cargo) await member.roles.add(cargo).catch(() => null);
 });
 
 // Sistema principal
 client.on("interactionCreate", async (interaction) => {
-  // Botão de abrir formulário (contrato)
+  // Botão para abrir formulário
   if (interaction.isButton() && interaction.customId === "formulario_havena") {
     const guarnicaoMenu = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
@@ -71,8 +71,8 @@ client.on("interactionCreate", async (interaction) => {
           Object.keys(cargoGuarnicoes).map((nome) => ({
             label: nome,
             value: nome,
-          })),
-        ),
+          }))
+        )
     );
 
     await interaction.reply({
@@ -83,16 +83,13 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // Menu de seleção de guarnição
+  // Modal após guarnição
   if (
     interaction.isStringSelectMenu() &&
     interaction.customId === "guarnicao_select"
   ) {
     const guarnicaoSelecionada = interaction.values[0];
-    client.guarnicoesSelecionadas.set(
-      interaction.user.id,
-      guarnicaoSelecionada,
-    );
+    client.guarnicoesSelecionadas.set(interaction.user.id, guarnicaoSelecionada);
 
     const modal = new ModalBuilder()
       .setCustomId("modal_formulario")
@@ -119,7 +116,7 @@ client.on("interactionCreate", async (interaction) => {
     modal.addComponents(
       new ActionRowBuilder().addComponents(nome),
       new ActionRowBuilder().addComponents(passaporte),
-      new ActionRowBuilder().addComponents(recrutador),
+      new ActionRowBuilder().addComponents(recrutador)
     );
 
     await interaction.showModal(modal);
@@ -143,21 +140,13 @@ client.on("interactionCreate", async (interaction) => {
       .setColor("#FF004C")
       .setThumbnail(interaction.guild.iconURL())
       .addFields(
-        {
-          name: "👤 Usuário",
-          value: `<@${interaction.user.id}>`,
-          inline: true,
-        },
+        { name: "👤 Usuário", value: `<@${interaction.user.id}>`, inline: true },
         { name: "🆔 ID", value: `\`${interaction.user.id}\``, inline: true },
         { name: "📝 Nome", value: `\`${nome}\``, inline: true },
         { name: "🪪 Passaporte", value: `\`${passaporte}\``, inline: true },
         { name: "🎖️ Guarnição", value: `\`${guarnicao}\``, inline: true },
         { name: "🧑‍💼 Recrutador", value: `\`${recrutador}\``, inline: true },
-        {
-          name: "📅 Data de Envio",
-          value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
-          inline: false,
-        },
+        { name: "📅 Data de Envio", value: `<t:${Math.floor(Date.now() / 1000)}:F>` }
       )
       .setFooter({ text: "Departamento Havena - Aguardando aprovação..." });
 
@@ -166,68 +155,43 @@ client.on("interactionCreate", async (interaction) => {
       .setLabel("✅ Aprovar")
       .setStyle(ButtonStyle.Success);
 
-    const row = new ActionRowBuilder().addComponents(aprovarBtn);
+    const reprovarBtn = new ButtonBuilder()
+      .setCustomId(`reprovar_${interaction.user.id}`)
+      .setLabel("❌ Reprovar")
+      .setStyle(ButtonStyle.Danger);
+
+    const row = new ActionRowBuilder().addComponents(aprovarBtn, reprovarBtn);
     const canal = await client.channels.fetch(canalEnvioId);
 
     await canal.send({ embeds: [embed], components: [row] });
-    await interaction.reply({
-      content: "✅ Formulário enviado com sucesso!",
-      ephemeral: true,
-    });
-
+    await interaction.reply({ content: "✅ Formulário enviado com sucesso!", ephemeral: true });
     client.guarnicoesSelecionadas.delete(interaction.user.id);
     return;
   }
 
-  // Aprovação de formulário
+  // Aprovar contrato
   if (interaction.isButton() && interaction.customId.startsWith("aprovar_")) {
     if (!interaction.member.roles.cache.has(cargoAprovadorId)) {
-      return interaction.reply({
-        content: "❌ Você não tem permissão para aprovar.",
-        ephemeral: true,
-      });
+      return interaction.reply({ content: "❌ Sem permissão!", ephemeral: true });
     }
 
     const userId = interaction.customId.split("_")[1];
-    const membro = await interaction.guild.members
-      .fetch(userId)
-      .catch(() => null);
-
-    if (!membro) {
-      return interaction.reply({
-        content: "❌ Usuário não encontrado.",
-        ephemeral: true,
-      });
-    }
+    const membro = await interaction.guild.members.fetch(userId).catch(() => null);
+    if (!membro) return interaction.reply({ content: "❌ Usuário não encontrado.", ephemeral: true });
 
     const embed = interaction.message.embeds[0];
-    const nome = embed.fields
-      .find((f) => f.name === "📝 Nome")
-      ?.value.replace(/`/g, "");
-    const guarnicao = embed.fields
-      .find((f) => f.name === "🎖️ Guarnição")
-      ?.value.replace(/`/g, "");
-
+    const nome = embed.fields.find(f => f.name === "📝 Nome")?.value.replace(/`/g, "");
+    const guarnicao = embed.fields.find(f => f.name === "🎖️ Guarnição")?.value.replace(/`/g, "");
     const cargoGuarnicao = cargoGuarnicoes[guarnicao];
-    if (!cargoGuarnicao) {
-      return interaction.reply({
-        content: "❌ Cargo da guarnição não encontrado.",
-        ephemeral: true,
-      });
-    }
 
-    await membro.roles.add(cargoGuarnicao).catch(() => null);
+    if (cargoGuarnicao) await membro.roles.add(cargoGuarnicao).catch(() => null);
     await membro.roles.add(cargoHavenaId).catch(() => null);
-    await membro.setNickname(nome).catch(() => null);
+    await membro.setNickname(`[ALN] ${nome} | ${membro.id}`).catch(() => null);
 
     const embedAprovado = EmbedBuilder.from(embed)
       .setTitle("✅ Membro Aprovado com Sucesso!")
       .setColor("Green")
-      .addFields({
-        name: "👮 Recrutador Responsável",
-        value: `${interaction.user}`,
-      })
-      .setThumbnail(interaction.guild.iconURL())
+      .addFields({ name: "👮 Recrutador Responsável", value: `${interaction.user}` })
       .setFooter({ text: "Central Polícia • Havena City" })
       .setTimestamp();
 
@@ -235,41 +199,51 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // Abrir Ticket
+  // Reprovar contrato
+  if (interaction.isButton() && interaction.customId.startsWith("reprovar_")) {
+    if (!interaction.member.roles.cache.has(cargoAprovadorId)) {
+      return interaction.reply({ content: "❌ Sem permissão!", ephemeral: true });
+    }
+
+    const userId = interaction.customId.split("_")[1];
+    const membro = await interaction.guild.members.fetch(userId).catch(() => null);
+    if (!membro) return interaction.reply({ content: "❌ Usuário não encontrado.", ephemeral: true });
+
+    const embed = interaction.message.embeds[0];
+    const guarnicao = embed.fields.find(f => f.name === "🎖️ Guarnição")?.value.replace(/`/g, "");
+    const cargoGuarnicao = cargoGuarnicoes[guarnicao];
+
+    if (cargoGuarnicao && membro.roles.cache.has(cargoGuarnicao)) {
+      await membro.roles.remove(cargoGuarnicao).catch(() => null);
+    }
+
+    const embedReprovado = EmbedBuilder.from(embed)
+      .setTitle("❌ Contrato Reprovado")
+      .setColor("Red")
+      .addFields({ name: "📛 Reprovado por", value: `${interaction.user}` })
+      .setFooter({ text: "Central Polícia • Havena City" })
+      .setTimestamp();
+
+    await interaction.update({ embeds: [embedReprovado], components: [] });
+    return;
+  }
+
+  // Abrir ticket
   if (interaction.isButton() && interaction.customId === "abrir_ticket") {
-    const existingChannel = interaction.guild.channels.cache.find(
-      (c) => c.name === `ticket-${interaction.user.id}`
-    );
-    if (existingChannel) {
-      await interaction.reply({
-        content: `📌 Você já possui um ticket aberto: ${existingChannel}`,
-        ephemeral: true,
-      });
+    const existing = interaction.guild.channels.cache.find(c => c.name === `ticket-${interaction.user.id}`);
+    if (existing) {
+      await interaction.reply({ content: `📌 Você já tem um ticket: ${existing}`, ephemeral: true });
       return;
     }
 
     const canal = await interaction.guild.channels.create({
       name: `ticket-${interaction.user.username}`,
       type: ChannelType.GuildText,
+      parent: categoriaTicketsId,
       permissionOverwrites: [
-        {
-          id: interaction.guild.id,
-          deny: [PermissionFlagsBits.ViewChannel],
-        },
-        {
-          id: interaction.user.id,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-          ],
-        },
-        {
-          id: cargoAprovadorId,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-          ],
-        },
+        { id: interaction.guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
+        { id: cargoEquipeTicketsId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
       ],
     });
 
@@ -280,31 +254,28 @@ client.on("interactionCreate", async (interaction) => {
 
     const row = new ActionRowBuilder().addComponents(botaoFechar);
 
-    await canal.send({
-      content: `📩 <@${interaction.user.id}> Ticket criado com sucesso! Em breve alguém da equipe irá te atender.`,
-      components: [row],
-    });
+    const embedTicket = new EmbedBuilder()
+      .setTitle("🎟️ Atendimento Aberto")
+      .setDescription(`👋 Olá <@${interaction.user.id}>, aguarde atendimento da equipe.`)
+      .setColor("#FF004C")
+      .setThumbnail(interaction.guild.iconURL())
+      .setFooter({ text: "Departamento Havena • Suporte" })
+      .setTimestamp();
 
-    await interaction.reply({
-      content: `✅ Ticket criado: ${canal}`,
-      ephemeral: true,
-    });
+    await canal.send({ content: `<@&${cargoEquipeTicketsId}>`, embeds: [embedTicket], components: [row] });
+    await interaction.reply({ content: `✅ Ticket criado: ${canal}`, ephemeral: true });
   }
 
-  // Fechar Ticket
+  // Fechar ticket
   if (interaction.isButton() && interaction.customId === "fechar_ticket") {
-    await interaction.reply({
-      content: "⏳ Fechando o ticket em 5 segundos...",
-      ephemeral: true,
-    });
-
+    await interaction.reply({ content: "⏳ Fechando o ticket em 5 segundos...", ephemeral: true });
     setTimeout(() => {
       interaction.channel.delete().catch(() => null);
     }, 5000);
   }
 });
 
-// Comando !contrato
+// Comandos via texto
 client.on("messageCreate", async (message) => {
   if (message.content === "!contrato") {
     const botaoContrato = new ButtonBuilder()
@@ -316,23 +287,10 @@ client.on("messageCreate", async (message) => {
 
     const embed = new EmbedBuilder()
       .setTitle("📘 Sistema de Recrutamento - Departamento Havena")
-      .setDescription(
-        `
-👮‍♂️ **Foi recrutado em game?**  
-Clique no botão abaixo para preencher seu contrato.
-
-> ⚠️ Preencha com atenção! Dados incorretos atrasam sua aprovação.
-        `,
-      )
+      .setDescription("👮‍♂️ Foi recrutado em game?\nClique abaixo para preencher seu contrato.\n> ⚠️ Preencha com atenção!")
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
-      .setImage(
-        "https://i.postimg.cc/4dGJv9ZV/White-Minimalist-Corporate-Personal-Profile-Linked-In-Banner.png",
-      )
-      .setFooter({
-        text: "Departamento Havena • Sistema de Contrato",
-        iconURL: client.user.displayAvatarURL(),
-      });
+      .setFooter({ text: "Departamento Havena • Sistema de Contrato", iconURL: client.user.displayAvatarURL() });
 
     await message.reply({ embeds: [embed], components: [row] });
   }
@@ -347,15 +305,10 @@ Clique no botão abaixo para preencher seu contrato.
 
     const embed = new EmbedBuilder()
       .setTitle("🎟️ Suporte Havena - Ticket")
-      .setDescription(
-        `❓ Está com alguma dúvida ou problema?\n\nClique no botão abaixo para abrir um ticket privado com a equipe responsável.\n\n> 📌 Um atendente responderá o quanto antes.`
-      )
+      .setDescription("❓ Está com dúvida ou problema?\nClique abaixo para abrir um ticket privado.")
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
-      .setFooter({
-        text: "Departamento Havena • Atendimento via Ticket",
-        iconURL: client.user.displayAvatarURL(),
-      });
+      .setFooter({ text: "Departamento Havena • Atendimento via Ticket", iconURL: client.user.displayAvatarURL() });
 
     await message.reply({ embeds: [embed], components: [row] });
   }
