@@ -77,7 +77,7 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       await interaction.reply({
-        content: "<a:seta:1402864885196652555> Escolha sua guarnição antes de preencher o contrato:",
+        content: "➡️ Escolha sua guarnição antes de preencher o contrato:",
         components: [guarnicaoMenu],
         ephemeral: true,
       });
@@ -93,7 +93,7 @@ client.on("interactionCreate", async (interaction) => {
 
       const modal = new ModalBuilder()
         .setCustomId("modal_formulario")
-        .setTitle("<:aviso:1402866926300037170> Contrato Aluno - Havena");
+        .setTitle("📄 Contrato Aluno - Havena");
 
       const nome = new TextInputBuilder()
         .setCustomId("nome")
@@ -135,15 +135,11 @@ client.on("interactionCreate", async (interaction) => {
         client.guarnicoesSelecionadas.get(interaction.user.id) || "Não definida";
 
       const embed = new EmbedBuilder()
-        .setTitle("<a:carregando:1403020587638591640> Novo Contrato Recebido!")
+        .setTitle("📩 Novo Contrato Recebido")
         .setColor("#FF004C")
         .setThumbnail(interaction.guild.iconURL())
         .addFields(
-          {
-            name: "👤 Usuário",
-            value: `<@${interaction.user.id}>`,
-            inline: true,
-          },
+          { name: "👤 Usuário", value: `<@${interaction.user.id}>`, inline: true },
           { name: "🆔 ID", value: `\`${interaction.user.id}\``, inline: true },
           { name: "📝 Nome", value: `\`${nome}\``, inline: true },
           { name: "🪪 Passaporte", value: `\`${passaporte}\``, inline: true },
@@ -194,9 +190,7 @@ client.on("interactionCreate", async (interaction) => {
         customId.startsWith("reprovar_")
       ) {
         const userId = customId.split("_")[1];
-        const membro = await interaction.guild.members
-          .fetch(userId)
-          .catch(() => null);
+        const membro = await interaction.guild.members.fetch(userId).catch(() => null);
 
         if (!membro) {
           return interaction.reply({
@@ -206,8 +200,8 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         const embed = interaction.message.embeds[0];
-        const nome = embed.fields.find((f) => f.name === "📝 Nome")?.value.replace(/`/g, "");
-        const guarnicao = embed.fields.find((f) => f.name === "🎖️ Guarnição")?.value.replace(/`/g, "");
+        const nome = embed.fields.find(f => f.name === "📝 Nome")?.value.replace(/`/g, "");
+        const guarnicao = embed.fields.find(f => f.name === "🎖️ Guarnição")?.value.replace(/`/g, "");
 
         if (customId.startsWith("aprovar_")) {
           const cargoGuarnicao = cargoGuarnicoes[guarnicao];
@@ -226,7 +220,7 @@ client.on("interactionCreate", async (interaction) => {
             .setTitle("✅ Membro Aprovado com Sucesso!")
             .setColor("Green")
             .addFields({
-              name: "<:policia:1403020545380978842> Recrutador Responsável",
+              name: "🧑‍✈️ Recrutador Responsável",
               value: `${interaction.user}`,
             })
             .setThumbnail(interaction.guild.iconURL())
@@ -242,7 +236,7 @@ client.on("interactionCreate", async (interaction) => {
             .setTitle("❌ Contrato Reprovado")
             .setColor("Red")
             .addFields({
-              name: "<:policia:1403020545380978842> Recrutador Responsável",
+              name: "🧑‍✈️ Recrutador Responsável",
               value: `${interaction.user}`,
             })
             .setThumbnail(interaction.guild.iconURL())
@@ -252,7 +246,7 @@ client.on("interactionCreate", async (interaction) => {
           await interaction.update({ embeds: [embedReprovado], components: [] });
 
           membro.send(
-            `Olá, seu contrato foi reprovado pelo responsável ${interaction.user.tag}. Caso tenha dúvidas, entre em contato com a equipe.`
+            `Olá, seu contrato foi reprovado por ${interaction.user.tag}. Caso tenha dúvidas, entre em contato com a equipe.`
           ).catch(() => null);
 
           return;
@@ -262,7 +256,7 @@ client.on("interactionCreate", async (interaction) => {
 
     if (interaction.isButton() && interaction.customId === "abrir_ticket") {
       const existingChannel = interaction.guild.channels.cache.find(
-        (c) => c.name === `🚔 ┋corregedoria-${interaction.user.username.toLowerCase()}`
+        (c) => c.name === `🚔-corregedoria-${interaction.user.username.toLowerCase()}`
       );
       if (existingChannel) {
         await interaction.reply({
@@ -273,7 +267,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const canal = await interaction.guild.channels.create({
-        name: `🚔 ┋corregedoria-${interaction.user.username.toLowerCase()}`,
+        name: `🚔-corregedoria-${interaction.user.username.toLowerCase()}`,
         type: ChannelType.GuildText,
         parent: categoriaTicketsId,
         permissionOverwrites: [
@@ -308,9 +302,9 @@ client.on("interactionCreate", async (interaction) => {
       const row = new ActionRowBuilder().addComponents(botaoFechar);
 
       const embedTicket = new EmbedBuilder()
-        .setTitle("<:aviso:1402866926300037170> Ticket de Suporte Aberto")
+        .setTitle("📩 Ticket de Suporte Aberto")
         .setDescription(
-          `Olá <@${interaction.user.id}>, sua solicitação foi recebida.\n\nAguarde um membro da equipe de suporte que irá te ajudar em breve!`
+          `Olá <@${interaction.user.id}>, sua solicitação foi recebida.\nAguarde um membro da equipe de suporte.`
         )
         .setColor("#FF004C")
         .setThumbnail(interaction.guild.iconURL())
@@ -318,7 +312,7 @@ client.on("interactionCreate", async (interaction) => {
         .setTimestamp();
 
       await canal.send({
-        content: `📩 <@${interaction.user.id}>`,
+        content: `<@${interaction.user.id}>`,
         embeds: [embedTicket],
         components: [row],
       });
@@ -362,16 +356,12 @@ client.on("messageCreate", async (message) => {
     const row = new ActionRowBuilder().addComponents(botaoContrato);
 
     const embed = new EmbedBuilder()
-      .setTitle("<:aviso:1402866926300037170> Sistema de Recrutamento - Departamento Havena")
+      .setTitle("📋 Sistema de Recrutamento - Departamento Havena")
       .setDescription(
-        `<:policia:1403020545380978842> **Foi recrutado em game?**  
-Clique no botão abaixo para preencher seu contrato.
-
-> ⚠️ Preencha com atenção! Dados incorretos atrasam sua aprovação.`
+        "🚓 **Foi recrutado em game?**\nClique no botão abaixo para preencher seu contrato.\n\n⚠️ Preencha com atenção! Dados incorretos atrasam sua aprovação."
       )
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
-      .setImage("https://i.postimg.cc/YCYqsWkn/Banner-marketing-site-estrat-gia-digital-roxo-branco-azul-1.gif")
       .setFooter({
         text: "Departamento Havena • Sistema de Contrato",
         iconURL: client.user.displayAvatarURL(),
@@ -389,9 +379,9 @@ Clique no botão abaixo para preencher seu contrato.
     const row = new ActionRowBuilder().addComponents(botaoTicket);
 
     const embed = new EmbedBuilder()
-      .setTitle("<:aviso:1402866926300037170> Suporte Havena - Ticket")
+      .setTitle("🎫 Suporte Havena - Ticket")
       .setDescription(
-        `<:policia:1403020545380978842> Está com alguma dúvida ou problema?\n\nClique no botão abaixo para abrir um ticket privado com a equipe responsável.\n\n> 📌 Um atendente responderá o quanto antes.`
+        "Está com alguma dúvida ou problema?\nClique no botão abaixo para abrir um ticket privado com a equipe responsável.\n\n📌 Um atendente responderá o quanto antes."
       )
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
