@@ -241,7 +241,7 @@ client.on("interactionCreate", async (interaction) => {
   // Abrir Ticket
   if (interaction.isButton() && interaction.customId === "abrir_ticket") {
     const existingChannel = interaction.guild.channels.cache.find(
-      (c) => c.name === `ticket-${interaction.user.id}`
+      (c) => c.name === `🚔 ┋corregedoria-${interaction.user.id}`
     );
     if (existingChannel) {
       await interaction.reply({
