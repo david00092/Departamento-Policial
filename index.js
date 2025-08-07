@@ -35,6 +35,7 @@ const client = new Client({
 const canalEnvioId = "1402769050718699562"; // canal onde os formulários serão enviados
 const cargoAprovadorId = "1402768862356836514"; // cargo dos aprovadores
 const cargoHavenaId = "1402768579600613386"; // cargo padrão havena
+const categoriaTicketsId = "1402768953092083813"; // <-- ID da categoria para os tickets
 
 const cargoGuarnicoes = {
   Polícia: "1402768867637330091",
@@ -167,7 +168,12 @@ client.on("interactionCreate", async (interaction) => {
         .setLabel("✅ Aprovar")
         .setStyle(ButtonStyle.Success);
 
-      const row = new ActionRowBuilder().addComponents(aprovarBtn);
+      const reprovarBtn = new ButtonBuilder()
+        .setCustomId(`reprovar_${interaction.user.id}`)
+        .setLabel("❌ Reprovar")
+        .setStyle(ButtonStyle.Danger);
+
+      const row = new ActionRowBuilder().addComponents(aprovarBtn, reprovarBtn);
       const canal = await client.channels.fetch(canalEnvioId);
 
       await canal.send({ embeds: [embed], components: [row] });
@@ -180,62 +186,95 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    // Aprovação de formulário
-    if (interaction.isButton() && interaction.customId.startsWith("aprovar_")) {
+    // Aprovação ou Reprovação de formulário
+    if (interaction.isButton()) {
+      // Só aprova ou reprova quem tem o cargo de aprovador
       if (!interaction.member.roles.cache.has(cargoAprovadorId)) {
         return interaction.reply({
-          content: "❌ Você não tem permissão para aprovar.",
+          content: "❌ Você não tem permissão para executar essa ação.",
           ephemeral: true,
         });
       }
 
-      const userId = interaction.customId.split("_")[1];
-      const membro = await interaction.guild.members
-        .fetch(userId)
-        .catch(() => null);
+      const customId = interaction.customId;
+      if (
+        customId.startsWith("aprovar_") ||
+        customId.startsWith("reprovar_")
+      ) {
+        const userId = customId.split("_")[1];
+        const membro = await interaction.guild.members
+          .fetch(userId)
+          .catch(() => null);
 
-      if (!membro) {
-        return interaction.reply({
-          content: "❌ Usuário não encontrado.",
-          ephemeral: true,
-        });
+        if (!membro) {
+          return interaction.reply({
+            content: "❌ Usuário não encontrado.",
+            ephemeral: true,
+          });
+        }
+
+        const embed = interaction.message.embeds[0];
+        const nome = embed.fields
+          .find((f) => f.name === "📝 Nome")
+          ?.value.replace(/`/g, "");
+        const guarnicao = embed.fields
+          .find((f) => f.name === "🎖️ Guarnição")
+          ?.value.replace(/`/g, "");
+
+        if (customId.startsWith("aprovar_")) {
+          const cargoGuarnicao = cargoGuarnicoes[guarnicao];
+          if (!cargoGuarnicao) {
+            return interaction.reply({
+              content: "❌ Cargo da guarnição não encontrado.",
+              ephemeral: true,
+            });
+          }
+
+          await membro.roles.add(cargoGuarnicao).catch(() => null);
+          await membro.roles.add(cargoHavenaId).catch(() => null);
+
+          // Apelido no formato "ALN | NOME"
+          await membro.setNickname(`ALN | ${nome}`).catch(() => null);
+
+          const embedAprovado = EmbedBuilder.from(embed)
+            .setTitle("✅ Membro Aprovado com Sucesso!")
+            .setColor("Green")
+            .addFields({
+              name: "👮 Recrutador Responsável",
+              value: `${interaction.user}`,
+            })
+            .setThumbnail(interaction.guild.iconURL())
+            .setFooter({ text: "Central Polícia • Havena City" })
+            .setTimestamp();
+
+          await interaction.update({ embeds: [embedAprovado], components: [] });
+          return;
+        }
+
+        if (customId.startsWith("reprovar_")) {
+          const embedReprovado = EmbedBuilder.from(embed)
+            .setTitle("❌ Contrato Reprovado")
+            .setColor("Red")
+            .addFields({
+              name: "👮 Recrutador Responsável",
+              value: `${interaction.user}`,
+            })
+            .setThumbnail(interaction.guild.iconURL())
+            .setFooter({ text: "Central Polícia • Havena City" })
+            .setTimestamp();
+
+          await interaction.update({ embeds: [embedReprovado], components: [] });
+
+          // Opcional: avisar o usuário reprovado por DM
+          membro
+            .send(
+              `Olá, seu contrato foi reprovado pelo responsável ${interaction.user.tag}. Caso tenha dúvidas, entre em contato com a equipe.`
+            )
+            .catch(() => null);
+
+          return;
+        }
       }
-
-      const embed = interaction.message.embeds[0];
-      const nome = embed.fields
-        .find((f) => f.name === "📝 Nome")
-        ?.value.replace(/`/g, "");
-      const guarnicao = embed.fields
-        .find((f) => f.name === "🎖️ Guarnição")
-        ?.value.replace(/`/g, "");
-
-      const cargoGuarnicao = cargoGuarnicoes[guarnicao];
-      if (!cargoGuarnicao) {
-        return interaction.reply({
-          content: "❌ Cargo da guarnição não encontrado.",
-          ephemeral: true,
-        });
-      }
-
-      await membro.roles.add(cargoGuarnicao).catch(() => null);
-      await membro.roles.add(cargoHavenaId).catch(() => null);
-
-      // Apelido no formato "ALN | NOME"
-      await membro.setNickname(`ALN | ${nome}`).catch(() => null);
-
-      const embedAprovado = EmbedBuilder.from(embed)
-        .setTitle("✅ Membro Aprovado com Sucesso!")
-        .setColor("Green")
-        .addFields({
-          name: "👮 Recrutador Responsável",
-          value: `${interaction.user}`,
-        })
-        .setThumbnail(interaction.guild.iconURL())
-        .setFooter({ text: "Central Polícia • Havena City" })
-        .setTimestamp();
-
-      await interaction.update({ embeds: [embedAprovado], components: [] });
-      return;
     }
 
     // Abrir Ticket
@@ -254,6 +293,7 @@ client.on("interactionCreate", async (interaction) => {
       const canal = await interaction.guild.channels.create({
         name: `🚔 ┋corregedoria-${interaction.user.username.toLowerCase()}`,
         type: ChannelType.GuildText,
+        parent: categoriaTicketsId, // aqui definimos a categoria
         permissionOverwrites: [
           {
             id: interaction.guild.id,
