@@ -32,10 +32,10 @@ const client = new Client({
 });
 
 // CONFIGURAÇÕES
-const canalEnvioId = "1402769050718699562"; // canal onde os formulários serão enviados
-const cargoAprovadorId = "1402768862356836514"; // cargo dos aprovadores
-const cargoHavenaId = "1402768579600613386"; // cargo padrão havena
-const categoriaTicketsId = "1402768953092083813"; // <-- ID da categoria para os tickets
+const canalEnvioId = "1402769050718699562";
+const cargoAprovadorId = "1402768862356836514";
+const cargoHavenaId = "1402768579600613386";
+const categoriaTicketsId = "1402768953092083813";
 
 const cargoGuarnicoes = {
   Polícia: "1402768867637330091",
@@ -63,7 +63,6 @@ client.on("guildMemberAdd", async (member) => {
 // Sistema principal
 client.on("interactionCreate", async (interaction) => {
   try {
-    // Botão de abrir formulário (contrato)
     if (interaction.isButton() && interaction.customId === "formulario_havena") {
       const guarnicaoMenu = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
@@ -73,32 +72,28 @@ client.on("interactionCreate", async (interaction) => {
             Object.keys(cargoGuarnicoes).map((nome) => ({
               label: nome,
               value: nome,
-            })),
-          ),
+            }))
+          )
       );
 
       await interaction.reply({
-        content: "🔰 Escolha sua guarnição antes de preencher o contrato:",
+        content: "<a:seta:1402864885196652555> Escolha sua guarnição antes de preencher o contrato:",
         components: [guarnicaoMenu],
         ephemeral: true,
       });
       return;
     }
 
-    // Menu de seleção de guarnição
     if (
       interaction.isStringSelectMenu() &&
       interaction.customId === "guarnicao_select"
     ) {
       const guarnicaoSelecionada = interaction.values[0];
-      client.guarnicoesSelecionadas.set(
-        interaction.user.id,
-        guarnicaoSelecionada,
-      );
+      client.guarnicoesSelecionadas.set(interaction.user.id, guarnicaoSelecionada);
 
       const modal = new ModalBuilder()
         .setCustomId("modal_formulario")
-        .setTitle("📘 Contrato Aluno - Havena");
+        .setTitle("<:aviso:1402866926300037170> Contrato Aluno - Havena");
 
       const nome = new TextInputBuilder()
         .setCustomId("nome")
@@ -121,14 +116,13 @@ client.on("interactionCreate", async (interaction) => {
       modal.addComponents(
         new ActionRowBuilder().addComponents(nome),
         new ActionRowBuilder().addComponents(passaporte),
-        new ActionRowBuilder().addComponents(recrutador),
+        new ActionRowBuilder().addComponents(recrutador)
       );
 
       await interaction.showModal(modal);
       return;
     }
 
-    // Envio do formulário
     if (
       interaction.isModalSubmit() &&
       interaction.customId === "modal_formulario"
@@ -141,7 +135,7 @@ client.on("interactionCreate", async (interaction) => {
         client.guarnicoesSelecionadas.get(interaction.user.id) || "Não definida";
 
       const embed = new EmbedBuilder()
-        .setTitle("📥 Novo Contrato Recebido!")
+        .setTitle("<a:carregando:1403020587638591640> Novo Contrato Recebido!")
         .setColor("#FF004C")
         .setThumbnail(interaction.guild.iconURL())
         .addFields(
@@ -159,7 +153,7 @@ client.on("interactionCreate", async (interaction) => {
             name: "📅 Data de Envio",
             value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
             inline: false,
-          },
+          }
         )
         .setFooter({ text: "Departamento Havena - Aguardando aprovação..." });
 
@@ -186,9 +180,7 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    // Aprovação ou Reprovação de formulário
     if (interaction.isButton()) {
-      // Só aprova ou reprova quem tem o cargo de aprovador
       if (!interaction.member.roles.cache.has(cargoAprovadorId)) {
         return interaction.reply({
           content: "❌ Você não tem permissão para executar essa ação.",
@@ -214,12 +206,8 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         const embed = interaction.message.embeds[0];
-        const nome = embed.fields
-          .find((f) => f.name === "📝 Nome")
-          ?.value.replace(/`/g, "");
-        const guarnicao = embed.fields
-          .find((f) => f.name === "🎖️ Guarnição")
-          ?.value.replace(/`/g, "");
+        const nome = embed.fields.find((f) => f.name === "📝 Nome")?.value.replace(/`/g, "");
+        const guarnicao = embed.fields.find((f) => f.name === "🎖️ Guarnição")?.value.replace(/`/g, "");
 
         if (customId.startsWith("aprovar_")) {
           const cargoGuarnicao = cargoGuarnicoes[guarnicao];
@@ -232,15 +220,13 @@ client.on("interactionCreate", async (interaction) => {
 
           await membro.roles.add(cargoGuarnicao).catch(() => null);
           await membro.roles.add(cargoHavenaId).catch(() => null);
-
-          // Apelido no formato "ALN | NOME"
           await membro.setNickname(`ALN | ${nome}`).catch(() => null);
 
           const embedAprovado = EmbedBuilder.from(embed)
             .setTitle("✅ Membro Aprovado com Sucesso!")
             .setColor("Green")
             .addFields({
-              name: "👮 Recrutador Responsável",
+              name: "<:policia:1403020545380978842> Recrutador Responsável",
               value: `${interaction.user}`,
             })
             .setThumbnail(interaction.guild.iconURL())
@@ -256,7 +242,7 @@ client.on("interactionCreate", async (interaction) => {
             .setTitle("❌ Contrato Reprovado")
             .setColor("Red")
             .addFields({
-              name: "👮 Recrutador Responsável",
+              name: "<:policia:1403020545380978842> Recrutador Responsável",
               value: `${interaction.user}`,
             })
             .setThumbnail(interaction.guild.iconURL())
@@ -265,19 +251,15 @@ client.on("interactionCreate", async (interaction) => {
 
           await interaction.update({ embeds: [embedReprovado], components: [] });
 
-          // Opcional: avisar o usuário reprovado por DM
-          membro
-            .send(
-              `Olá, seu contrato foi reprovado pelo responsável ${interaction.user.tag}. Caso tenha dúvidas, entre em contato com a equipe.`
-            )
-            .catch(() => null);
+          membro.send(
+            `Olá, seu contrato foi reprovado pelo responsável ${interaction.user.tag}. Caso tenha dúvidas, entre em contato com a equipe.`
+          ).catch(() => null);
 
           return;
         }
       }
     }
 
-    // Abrir Ticket
     if (interaction.isButton() && interaction.customId === "abrir_ticket") {
       const existingChannel = interaction.guild.channels.cache.find(
         (c) => c.name === `🚔 ┋corregedoria-${interaction.user.username.toLowerCase()}`
@@ -293,7 +275,7 @@ client.on("interactionCreate", async (interaction) => {
       const canal = await interaction.guild.channels.create({
         name: `🚔 ┋corregedoria-${interaction.user.username.toLowerCase()}`,
         type: ChannelType.GuildText,
-        parent: categoriaTicketsId, // aqui definimos a categoria
+        parent: categoriaTicketsId,
         permissionOverwrites: [
           {
             id: interaction.guild.id,
@@ -326,7 +308,7 @@ client.on("interactionCreate", async (interaction) => {
       const row = new ActionRowBuilder().addComponents(botaoFechar);
 
       const embedTicket = new EmbedBuilder()
-        .setTitle("🎟️ Ticket de Suporte Aberto")
+        .setTitle("<:aviso:1402866926300037170> Ticket de Suporte Aberto")
         .setDescription(
           `Olá <@${interaction.user.id}>, sua solicitação foi recebida.\n\nAguarde um membro da equipe de suporte que irá te ajudar em breve!`
         )
@@ -348,7 +330,6 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    // Fechar Ticket
     if (interaction.isButton() && interaction.customId === "fechar_ticket") {
       await interaction.reply({
         content: "⏳ Fechando o ticket em 5 segundos...",
@@ -370,7 +351,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-// Comando !contrato
+// Comandos
 client.on("messageCreate", async (message) => {
   if (message.content === "!contrato") {
     const botaoContrato = new ButtonBuilder()
@@ -381,20 +362,16 @@ client.on("messageCreate", async (message) => {
     const row = new ActionRowBuilder().addComponents(botaoContrato);
 
     const embed = new EmbedBuilder()
-      .setTitle("📘 Sistema de Recrutamento - Departamento Havena")
+      .setTitle("<:aviso:1402866926300037170> Sistema de Recrutamento - Departamento Havena")
       .setDescription(
-        `
-👮‍♂️ **Foi recrutado em game?**  
+        `<:policia:1403020545380978842> **Foi recrutado em game?**  
 Clique no botão abaixo para preencher seu contrato.
 
-> ⚠️ Preencha com atenção! Dados incorretos atrasam sua aprovação.
-        `,
+> ⚠️ Preencha com atenção! Dados incorretos atrasam sua aprovação.`
       )
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
-      .setImage(
-        "https://i.postimg.cc/YCYqsWkn/Banner-marketing-site-estrat-gia-digital-roxo-branco-azul-1.gif",
-      )
+      .setImage("https://i.postimg.cc/YCYqsWkn/Banner-marketing-site-estrat-gia-digital-roxo-branco-azul-1.gif")
       .setFooter({
         text: "Departamento Havena • Sistema de Contrato",
         iconURL: client.user.displayAvatarURL(),
@@ -412,9 +389,9 @@ Clique no botão abaixo para preencher seu contrato.
     const row = new ActionRowBuilder().addComponents(botaoTicket);
 
     const embed = new EmbedBuilder()
-      .setTitle("🎟️ Suporte Havena - Ticket")
+      .setTitle("<:aviso:1402866926300037170> Suporte Havena - Ticket")
       .setDescription(
-        `❓ Está com alguma dúvida ou problema?\n\nClique no botão abaixo para abrir um ticket privado com a equipe responsável.\n\n> 📌 Um atendente responderá o quanto antes.`
+        `<:policia:1403020545380978842> Está com alguma dúvida ou problema?\n\nClique no botão abaixo para abrir um ticket privado com a equipe responsável.\n\n> 📌 Um atendente responderá o quanto antes.`
       )
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
