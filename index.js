@@ -381,7 +381,7 @@ client.on("messageCreate", async (message) => {
     const row = new ActionRowBuilder().addComponents(botaoContrato);
 
     const embed = new EmbedBuilder()
-      .setTitle("📘 Sistema de Recrutamento - Departamento Havena")
+      .setTitle("<a:13818700276151091622:1402864885196652555> Sistema de Recrutamento - Departamento Havena")
       .setDescription(
         `
 👮‍♂️ **Foi recrutado em game?**  
