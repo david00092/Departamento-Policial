@@ -53,13 +53,13 @@ client.once("ready", () => {
   console.log(`Bot online como ${client.user.tag}`);
 });
 
-// Autorole
+// Autorole ao entrar no servidor
 client.on("guildMemberAdd", async (member) => {
   const cargo = member.guild.roles.cache.get(cargoHavenaId);
   if (cargo) await member.roles.add(cargo).catch(() => null);
 });
 
-// Sistema principal
+// Interações (botões, selects, modais)
 client.on("interactionCreate", async (interaction) => {
   try {
     // Botão para abrir formulário
@@ -76,15 +76,14 @@ client.on("interactionCreate", async (interaction) => {
           )
       );
 
-      await interaction.reply({
+      return interaction.reply({
         content: "🔰 Escolha sua guarnição antes de preencher o contrato:",
         components: [guarnicaoMenu],
         ephemeral: true,
       });
-      return;
     }
 
-    // Modal após seleção da guarnição
+    // Select menu para guarnição
     if (interaction.isStringSelectMenu() && interaction.customId === "guarnicao_select") {
       const guarnicaoSelecionada = interaction.values[0];
       client.guarnicoesSelecionadas.set(interaction.user.id, guarnicaoSelecionada);
@@ -117,12 +116,14 @@ client.on("interactionCreate", async (interaction) => {
         new ActionRowBuilder().addComponents(recrutador)
       );
 
-      await interaction.showModal(modal);
-      return;
+      return interaction.showModal(modal);
     }
 
     // Envio do formulário modal
     if (interaction.isModalSubmit() && interaction.customId === "modal_formulario") {
+      // Já respondendo a interação com deferReply para evitar erros
+      await interaction.deferReply({ ephemeral: true });
+
       const nome = interaction.fields.getTextInputValue("nome");
       const passaporte = interaction.fields.getTextInputValue("passaporte");
       const recrutador = interaction.fields.getTextInputValue("recrutador");
@@ -158,22 +159,23 @@ client.on("interactionCreate", async (interaction) => {
       const canal = await client.channels.fetch(canalEnvioId);
 
       await canal.send({ embeds: [embed], components: [row] });
-      await interaction.reply({ content: "✅ Formulário enviado com sucesso!", ephemeral: true });
+      await interaction.editReply({ content: "✅ Formulário enviado com sucesso!" });
       client.guarnicoesSelecionadas.delete(interaction.user.id);
       return;
     }
 
     // Aprovar contrato
     if (interaction.isButton() && interaction.customId.startsWith("aprovar_")) {
-      await interaction.deferUpdate();
-
+      // Verifica permissão antes de deferir
       if (!interaction.member.roles.cache.has(cargoAprovadorId)) {
-        return interaction.followUp({ content: "❌ Sem permissão!", ephemeral: true });
+        return interaction.reply({ content: "❌ Sem permissão!", ephemeral: true });
       }
+
+      await interaction.deferUpdate();
 
       const userId = interaction.customId.split("_")[1];
       const membro = await interaction.guild.members.fetch(userId).catch(() => null);
-      if (!membro) return interaction.followUp({ content: "❌ Usuário não encontrado.", ephemeral: true });
+      if (!membro) return;
 
       const embed = interaction.message.embeds[0];
 
@@ -200,15 +202,15 @@ client.on("interactionCreate", async (interaction) => {
 
     // Reprovar contrato
     if (interaction.isButton() && interaction.customId.startsWith("reprovar_")) {
-      await interaction.deferUpdate();
-
       if (!interaction.member.roles.cache.has(cargoAprovadorId)) {
-        return interaction.followUp({ content: "❌ Sem permissão!", ephemeral: true });
+        return interaction.reply({ content: "❌ Sem permissão!", ephemeral: true });
       }
+
+      await interaction.deferUpdate();
 
       const userId = interaction.customId.split("_")[1];
       const membro = await interaction.guild.members.fetch(userId).catch(() => null);
-      if (!membro) return interaction.followUp({ content: "❌ Usuário não encontrado.", ephemeral: true });
+      if (!membro) return;
 
       const embed = interaction.message.embeds[0];
       const guarnicao = embed.fields.find(f => f.name === "🎖️ Guarnição")?.value.replace(/`/g, "");
@@ -231,16 +233,15 @@ client.on("interactionCreate", async (interaction) => {
 
     // Abrir ticket
     if (interaction.isButton() && interaction.customId === "abrir_ticket") {
-      // Evitar duplicar ticket
+      // Verifica se já existe ticket do usuário
       const existing = interaction.guild.channels.cache.find(
         (c) => c.name === `corregedoria-${interaction.user.id}`
       );
       if (existing) {
-        await interaction.reply({
+        return interaction.reply({
           content: `📌 Você já tem um ticket aberto: ${existing}`,
           ephemeral: true,
         });
-        return;
       }
 
       const canal = await interaction.guild.channels.create({
@@ -280,8 +281,8 @@ client.on("interactionCreate", async (interaction) => {
         embeds: [embedTicket],
         components: [row],
       });
-      await interaction.reply({ content: `✅ Ticket criado: ${canal}`, ephemeral: true });
-      return;
+
+      return interaction.reply({ content: `✅ Ticket criado: ${canal}`, ephemeral: true });
     }
 
     // Fechar ticket
@@ -294,10 +295,15 @@ client.on("interactionCreate", async (interaction) => {
     }
   } catch (error) {
     console.error("Erro no interactionCreate:", error);
-    if (interaction.replied || interaction.deferred) {
-      interaction.followUp({ content: "❌ Ocorreu um erro.", ephemeral: true });
-    } else {
-      interaction.reply({ content: "❌ Ocorreu um erro.", ephemeral: true });
+
+    try {
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: "❌ Ocorreu um erro.", ephemeral: true });
+      } else {
+        await interaction.reply({ content: "❌ Ocorreu um erro.", ephemeral: true });
+      }
+    } catch {
+      // Já respondido, não faz nada
     }
   }
 });
