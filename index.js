@@ -35,8 +35,8 @@ const client = new Client({
 const canalEnvioId = "1402769050718699562";
 const cargoAprovadorId = "1402768862356836514";
 const cargoHavenaId = "1402768881554292888";
-const categoriaTicketsId = "SEU_ID_DA_CATEGORIA_AQUI";
-const cargoEquipeTicketsId = "SEU_ID_EQUIPE_TICKETS";
+const categoriaTicketsId = "1402768953092083813";
+const cargoEquipeTicketsId = "1402768861060661298";
 
 const cargoGuarnicoes = {
   Polícia: "1402768867637330091",
@@ -237,7 +237,7 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     const canal = await interaction.guild.channels.create({
-      name: `ticket-${interaction.user.username}`,
+      name: `🚔┋corregedoria-${interaction.user.username}`,
       type: ChannelType.GuildText,
       parent: categoriaTicketsId,
       permissionOverwrites: [
