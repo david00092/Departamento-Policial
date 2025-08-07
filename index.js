@@ -78,7 +78,7 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       await interaction.reply({
-        content: "🔰 Escolha sua guarnição antes de preencher o contrato:",
+        content: "<a:13818700276151091622:1402864885196652555> Escolha sua guarnição antes de preencher o contrato:",
         components: [guarnicaoMenu],
         ephemeral: true,
       });
