@@ -393,7 +393,7 @@ Clique no botão abaixo para preencher seu contrato.
       .setColor("#FF004C")
       .setThumbnail(message.guild.iconURL())
       .setImage(
-        "https://i.postimg.cc/4dGJv9ZV/White-Minimalist-Corporate-Personal-Profile-Linked-In-Banner.png",
+        "https://i.postimg.cc/YCYqsWkn/Banner-marketing-site-estrat-gia-digital-roxo-branco-azul-1.gif",
       )
       .setFooter({
         text: "Departamento Havena • Sistema de Contrato",
