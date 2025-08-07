@@ -45,9 +45,6 @@ const cargoGuarnicoes = {
   SPF: "1402768874222522519",
 };
 
-// **ID da categoria onde os tickets serão criados:**
-const categoriaTicketsId = "1402768953092083813"; // <<< TROQUE PELO ID DA SUA CATEGORIA
-
 client.guarnicoesSelecionadas = new Map();
 
 client.once("ready", () => {
@@ -64,247 +61,272 @@ client.on("guildMemberAdd", async (member) => {
 
 // Sistema principal
 client.on("interactionCreate", async (interaction) => {
-  // Botão de abrir formulário (contrato)
-  if (interaction.isButton() && interaction.customId === "formulario_havena") {
-    const guarnicaoMenu = new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder()
-        .setCustomId("guarnicao_select")
-        .setPlaceholder("Selecione sua guarnição")
-        .addOptions(
-          Object.keys(cargoGuarnicoes).map((nome) => ({
-            label: nome,
-            value: nome,
-          })),
-        ),
-    );
+  try {
+    // Botão de abrir formulário (contrato)
+    if (interaction.isButton() && interaction.customId === "formulario_havena") {
+      const guarnicaoMenu = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("guarnicao_select")
+          .setPlaceholder("Selecione sua guarnição")
+          .addOptions(
+            Object.keys(cargoGuarnicoes).map((nome) => ({
+              label: nome,
+              value: nome,
+            })),
+          ),
+      );
 
-    await interaction.reply({
-      content: "🔰 Escolha sua guarnição antes de preencher o contrato:",
-      components: [guarnicaoMenu],
-      ephemeral: true,
-    });
-    return;
-  }
-
-  // Menu de seleção de guarnição
-  if (
-    interaction.isStringSelectMenu() &&
-    interaction.customId === "guarnicao_select"
-  ) {
-    const guarnicaoSelecionada = interaction.values[0];
-    client.guarnicoesSelecionadas.set(
-      interaction.user.id,
-      guarnicaoSelecionada,
-    );
-
-    const modal = new ModalBuilder()
-      .setCustomId("modal_formulario")
-      .setTitle("📘 Contrato Aluno - Havena");
-
-    const nome = new TextInputBuilder()
-      .setCustomId("nome")
-      .setLabel("Nome:")
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
-
-    const passaporte = new TextInputBuilder()
-      .setCustomId("passaporte")
-      .setLabel("Qual o seu passaporte na cidade?")
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
-
-    const recrutador = new TextInputBuilder()
-      .setCustomId("recrutador")
-      .setLabel("Recrutador(a):")
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
-
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(nome),
-      new ActionRowBuilder().addComponents(passaporte),
-      new ActionRowBuilder().addComponents(recrutador),
-    );
-
-    await interaction.showModal(modal);
-    return;
-  }
-
-  // Envio do formulário
-  if (
-    interaction.isModalSubmit() &&
-    interaction.customId === "modal_formulario"
-  ) {
-    const nome = interaction.fields.getTextInputValue("nome");
-    const passaporte = interaction.fields.getTextInputValue("passaporte");
-    const recrutador = interaction.fields.getTextInputValue("recrutador");
-
-    const guarnicao =
-      client.guarnicoesSelecionadas.get(interaction.user.id) || "Não definida";
-
-    const embed = new EmbedBuilder()
-      .setTitle("📥 Novo Contrato Recebido!")
-      .setColor("#FF004C")
-      .setThumbnail(interaction.guild.iconURL())
-      .addFields(
-        {
-          name: "👤 Usuário",
-          value: `<@${interaction.user.id}>`,
-          inline: true,
-        },
-        { name: "🆔 ID", value: `\`${interaction.user.id}\``, inline: true },
-        { name: "📝 Nome", value: `\`${nome}\``, inline: true },
-        { name: "🪪 Passaporte", value: `\`${passaporte}\``, inline: true },
-        { name: "🎖️ Guarnição", value: `\`${guarnicao}\``, inline: true },
-        { name: "🧑‍💼 Recrutador", value: `\`${recrutador}\``, inline: true },
-        {
-          name: "📅 Data de Envio",
-          value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
-          inline: false,
-        },
-      )
-      .setFooter({ text: "Departamento Havena - Aguardando aprovação..." });
-
-    const aprovarBtn = new ButtonBuilder()
-      .setCustomId(`aprovar_${interaction.user.id}`)
-      .setLabel("✅ Aprovar")
-      .setStyle(ButtonStyle.Success);
-
-    const row = new ActionRowBuilder().addComponents(aprovarBtn);
-    const canal = await client.channels.fetch(canalEnvioId);
-
-    await canal.send({ embeds: [embed], components: [row] });
-    await interaction.reply({
-      content: "✅ Formulário enviado com sucesso!",
-      ephemeral: true,
-    });
-
-    client.guarnicoesSelecionadas.delete(interaction.user.id);
-    return;
-  }
-
-  // Aprovação de formulário
-  if (interaction.isButton() && interaction.customId.startsWith("aprovar_")) {
-    if (!interaction.member.roles.cache.has(cargoAprovadorId)) {
-      return interaction.reply({
-        content: "❌ Você não tem permissão para aprovar.",
-        ephemeral: true,
-      });
-    }
-
-    const userId = interaction.customId.split("_")[1];
-    const membro = await interaction.guild.members
-      .fetch(userId)
-      .catch(() => null);
-
-    if (!membro) {
-      return interaction.reply({
-        content: "❌ Usuário não encontrado.",
-        ephemeral: true,
-      });
-    }
-
-    const embed = interaction.message.embeds[0];
-    const nome = embed.fields
-      .find((f) => f.name === "📝 Nome")
-      ?.value.replace(/`/g, "");
-    const guarnicao = embed.fields
-      .find((f) => f.name === "🎖️ Guarnição")
-      ?.value.replace(/`/g, "");
-
-    const cargoGuarnicao = cargoGuarnicoes[guarnicao];
-    if (!cargoGuarnicao) {
-      return interaction.reply({
-        content: "❌ Cargo da guarnição não encontrado.",
-        ephemeral: true,
-      });
-    }
-
-    await membro.roles.add(cargoGuarnicao).catch(() => null);
-    await membro.roles.add(cargoHavenaId).catch(() => null);
-    await membro.setNickname(nome).catch(() => null);
-
-    const embedAprovado = EmbedBuilder.from(embed)
-      .setTitle("✅ Membro Aprovado com Sucesso!")
-      .setColor("Green")
-      .addFields({
-        name: "👮 Recrutador Responsável",
-        value: `${interaction.user}`,
-      })
-      .setThumbnail(interaction.guild.iconURL())
-      .setFooter({ text: "Central Polícia • Havena City" })
-      .setTimestamp();
-
-    await interaction.update({ embeds: [embedAprovado], components: [] });
-    return;
-  }
-
-  // Abrir Ticket
-  if (interaction.isButton() && interaction.customId === "abrir_ticket") {
-    const existingChannel = interaction.guild.channels.cache.find(
-      (c) => c.name === `🚔 ┋corregedoria-${interaction.user.id}`
-    );
-    if (existingChannel) {
       await interaction.reply({
-        content: `📌 Você já possui um ticket aberto: ${existingChannel}`,
+        content: "🔰 Escolha sua guarnição antes de preencher o contrato:",
+        components: [guarnicaoMenu],
         ephemeral: true,
       });
       return;
     }
 
-    const canal = await interaction.guild.channels.create({
-      name: `ticket-${interaction.user.username}`,
-      type: ChannelType.GuildText,
-      parent: categoriaTicketsId, // Aqui o canal fica dentro da categoria especificada
-      permissionOverwrites: [
-        {
-          id: interaction.guild.id,
-          deny: [PermissionFlagsBits.ViewChannel],
-        },
-        {
-          id: interaction.user.id,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-          ],
-        },
-        {
-          id: cargoAprovadorId,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-          ],
-        },
-      ],
-    });
+    // Menu de seleção de guarnição
+    if (
+      interaction.isStringSelectMenu() &&
+      interaction.customId === "guarnicao_select"
+    ) {
+      const guarnicaoSelecionada = interaction.values[0];
+      client.guarnicoesSelecionadas.set(
+        interaction.user.id,
+        guarnicaoSelecionada,
+      );
 
-    const botaoFechar = new ButtonBuilder()
-      .setCustomId("fechar_ticket")
-      .setLabel("🔒 Fechar Ticket")
-      .setStyle(ButtonStyle.Danger);
+      const modal = new ModalBuilder()
+        .setCustomId("modal_formulario")
+        .setTitle("📘 Contrato Aluno - Havena");
 
-    const row = new ActionRowBuilder().addComponents(botaoFechar);
+      const nome = new TextInputBuilder()
+        .setCustomId("nome")
+        .setLabel("Nome:")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
 
-    await canal.send({
-      content: `📩 <@${interaction.user.id}> Ticket criado com sucesso! Em breve alguém da equipe irá te atender.`,
-      components: [row],
-    });
+      const passaporte = new TextInputBuilder()
+        .setCustomId("passaporte")
+        .setLabel("Qual o seu passaporte na cidade?")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
 
-    await interaction.reply({
-      content: `✅ Ticket criado: ${canal}`,
-      ephemeral: true,
-    });
-  }
+      const recrutador = new TextInputBuilder()
+        .setCustomId("recrutador")
+        .setLabel("Recrutador(a):")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
 
-  // Fechar Ticket
-  if (interaction.isButton() && interaction.customId === "fechar_ticket") {
-    await interaction.reply({
-      content: "⏳ Fechando o ticket em 5 segundos...",
-      ephemeral: true,
-    });
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(nome),
+        new ActionRowBuilder().addComponents(passaporte),
+        new ActionRowBuilder().addComponents(recrutador),
+      );
 
-    setTimeout(() => {
-      interaction.channel.delete().catch(() => null);
-    }, 5000);
+      await interaction.showModal(modal);
+      return;
+    }
+
+    // Envio do formulário
+    if (
+      interaction.isModalSubmit() &&
+      interaction.customId === "modal_formulario"
+    ) {
+      const nome = interaction.fields.getTextInputValue("nome");
+      const passaporte = interaction.fields.getTextInputValue("passaporte");
+      const recrutador = interaction.fields.getTextInputValue("recrutador");
+
+      const guarnicao =
+        client.guarnicoesSelecionadas.get(interaction.user.id) || "Não definida";
+
+      const embed = new EmbedBuilder()
+        .setTitle("📥 Novo Contrato Recebido!")
+        .setColor("#FF004C")
+        .setThumbnail(interaction.guild.iconURL())
+        .addFields(
+          {
+            name: "👤 Usuário",
+            value: `<@${interaction.user.id}>`,
+            inline: true,
+          },
+          { name: "🆔 ID", value: `\`${interaction.user.id}\``, inline: true },
+          { name: "📝 Nome", value: `\`${nome}\``, inline: true },
+          { name: "🪪 Passaporte", value: `\`${passaporte}\``, inline: true },
+          { name: "🎖️ Guarnição", value: `\`${guarnicao}\``, inline: true },
+          { name: "🧑‍💼 Recrutador", value: `\`${recrutador}\``, inline: true },
+          {
+            name: "📅 Data de Envio",
+            value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+            inline: false,
+          },
+        )
+        .setFooter({ text: "Departamento Havena - Aguardando aprovação..." });
+
+      const aprovarBtn = new ButtonBuilder()
+        .setCustomId(`aprovar_${interaction.user.id}`)
+        .setLabel("✅ Aprovar")
+        .setStyle(ButtonStyle.Success);
+
+      const row = new ActionRowBuilder().addComponents(aprovarBtn);
+      const canal = await client.channels.fetch(canalEnvioId);
+
+      await canal.send({ embeds: [embed], components: [row] });
+      await interaction.reply({
+        content: "✅ Formulário enviado com sucesso!",
+        ephemeral: true,
+      });
+
+      client.guarnicoesSelecionadas.delete(interaction.user.id);
+      return;
+    }
+
+    // Aprovação de formulário
+    if (interaction.isButton() && interaction.customId.startsWith("aprovar_")) {
+      if (!interaction.member.roles.cache.has(cargoAprovadorId)) {
+        return interaction.reply({
+          content: "❌ Você não tem permissão para aprovar.",
+          ephemeral: true,
+        });
+      }
+
+      const userId = interaction.customId.split("_")[1];
+      const membro = await interaction.guild.members
+        .fetch(userId)
+        .catch(() => null);
+
+      if (!membro) {
+        return interaction.reply({
+          content: "❌ Usuário não encontrado.",
+          ephemeral: true,
+        });
+      }
+
+      const embed = interaction.message.embeds[0];
+      const nome = embed.fields
+        .find((f) => f.name === "📝 Nome")
+        ?.value.replace(/`/g, "");
+      const guarnicao = embed.fields
+        .find((f) => f.name === "🎖️ Guarnição")
+        ?.value.replace(/`/g, "");
+
+      const cargoGuarnicao = cargoGuarnicoes[guarnicao];
+      if (!cargoGuarnicao) {
+        return interaction.reply({
+          content: "❌ Cargo da guarnição não encontrado.",
+          ephemeral: true,
+        });
+      }
+
+      await membro.roles.add(cargoGuarnicao).catch(() => null);
+      await membro.roles.add(cargoHavenaId).catch(() => null);
+
+      // Apelido no formato "ALN | NOME"
+      await membro.setNickname(`ALN | ${nome}`).catch(() => null);
+
+      const embedAprovado = EmbedBuilder.from(embed)
+        .setTitle("✅ Membro Aprovado com Sucesso!")
+        .setColor("Green")
+        .addFields({
+          name: "👮 Recrutador Responsável",
+          value: `${interaction.user}`,
+        })
+        .setThumbnail(interaction.guild.iconURL())
+        .setFooter({ text: "Central Polícia • Havena City" })
+        .setTimestamp();
+
+      await interaction.update({ embeds: [embedAprovado], components: [] });
+      return;
+    }
+
+    // Abrir Ticket
+    if (interaction.isButton() && interaction.customId === "abrir_ticket") {
+      const existingChannel = interaction.guild.channels.cache.find(
+        (c) => c.name === `🚔 ┋corregedoria-${interaction.user.username.toLowerCase()}`
+      );
+      if (existingChannel) {
+        await interaction.reply({
+          content: `📌 Você já possui um ticket aberto: ${existingChannel}`,
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const canal = await interaction.guild.channels.create({
+        name: `🚔 ┋corregedoria-${interaction.user.username.toLowerCase()}`,
+        type: ChannelType.GuildText,
+        permissionOverwrites: [
+          {
+            id: interaction.guild.id,
+            deny: [PermissionFlagsBits.ViewChannel],
+          },
+          {
+            id: interaction.user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+            ],
+          },
+          {
+            id: cargoAprovadorId,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+            ],
+          },
+        ],
+      });
+
+      const botaoFechar = new ButtonBuilder()
+        .setCustomId("fechar_ticket")
+        .setLabel("🔒 Fechar Ticket")
+        .setStyle(ButtonStyle.Danger);
+
+      const row = new ActionRowBuilder().addComponents(botaoFechar);
+
+      const embedTicket = new EmbedBuilder()
+        .setTitle("🎟️ Ticket de Suporte Aberto")
+        .setDescription(
+          `Olá <@${interaction.user.id}>, sua solicitação foi recebida.\n\nAguarde um membro da equipe de suporte que irá te ajudar em breve!`
+        )
+        .setColor("#FF004C")
+        .setThumbnail(interaction.guild.iconURL())
+        .setFooter({ text: "Departamento Havena • Suporte" })
+        .setTimestamp();
+
+      await canal.send({
+        content: `📩 <@${interaction.user.id}>`,
+        embeds: [embedTicket],
+        components: [row],
+      });
+
+      await interaction.reply({
+        content: `✅ Ticket criado: ${canal}`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // Fechar Ticket
+    if (interaction.isButton() && interaction.customId === "fechar_ticket") {
+      await interaction.reply({
+        content: "⏳ Fechando o ticket em 5 segundos...",
+        ephemeral: true,
+      });
+
+      setTimeout(() => {
+        interaction.channel.delete().catch(() => null);
+      }, 5000);
+      return;
+    }
+  } catch (error) {
+    console.error("Erro no interactionCreate:", error);
+    if (interaction.replied || interaction.deferred) {
+      interaction.followUp({ content: "❌ Ocorreu um erro.", ephemeral: true });
+    } else {
+      interaction.reply({ content: "❌ Ocorreu um erro.", ephemeral: true });
+    }
   }
 });
 
@@ -349,7 +371,7 @@ Clique no botão abaixo para preencher seu contrato.
 
     const row = new ActionRowBuilder().addComponents(botaoTicket);
 
-    const embed = new EmbedBuilder() 
+    const embed = new EmbedBuilder()
       .setTitle("🎟️ Suporte Havena - Ticket")
       .setDescription(
         `❓ Está com alguma dúvida ou problema?\n\nClique no botão abaixo para abrir um ticket privado com a equipe responsável.\n\n> 📌 Um atendente responderá o quanto antes.`
