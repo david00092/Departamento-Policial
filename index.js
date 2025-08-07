@@ -141,7 +141,7 @@ client.on("interactionCreate", async (interaction) => {
         client.guarnicoesSelecionadas.get(interaction.user.id) || "Não definida";
 
       const embed = new EmbedBuilder()
-        .setTitle("<a:13411143342894612991:1402866926300037170> Novo Contrato Recebido!")
+        .setTitle("<:13411143342894612991:1402866926300037170> Novo Contrato Recebido!")
         .setColor("#FF004C")
         .setThumbnail(interaction.guild.iconURL())
         .addFields(
@@ -387,7 +387,7 @@ client.on("messageCreate", async (message) => {
 👮‍♂️ **Foi recrutado em game?**  
 Clique no botão abaixo para preencher seu contrato.
 
-> <a:13411143342894612991:1402866926300037170> Preencha com atenção! Dados incorretos atrasam sua aprovação.
+> <:13411143342894612991:1402866926300037170> Preencha com atenção! Dados incorretos atrasam sua aprovação.
         `,
       )
       .setColor("#FF004C")
