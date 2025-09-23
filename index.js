@@ -136,7 +136,7 @@ client.on("interactionCreate", async (interaction) => {
 
       const embed = new EmbedBuilder()
         .setTitle("📩 Novo Contrato Recebido")
-        .setColor("#E54A2F")
+        .setColor("00f5ff")
         .setThumbnail(interaction.guild.iconURL())
         .addFields(
           { name: "👤 Usuário", value: `<@${interaction.user.id}>`, inline: true },
@@ -306,7 +306,7 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription(
           `Olá <@${interaction.user.id}>, sua solicitação foi recebida.\nAguarde um membro da equipe de suporte.`
         )
-        .setColor("#E54A2F")
+        .setColor("00f5ff")
         .setThumbnail(interaction.guild.iconURL())
         .setFooter({ text: "Departamento Havena • Suporte" })
         .setTimestamp();
@@ -360,7 +360,7 @@ client.on("messageCreate", async (message) => {
       .setDescription(
         "🚓 **Foi recrutado em game?**\nClique no botão abaixo para preencher seu contrato.\n\n⚠️ Preencha com atenção! Dados incorretos atrasam sua aprovação."
       )
-      .setColor("#E54A2F")
+      .setColor("00f5ff")
       .setThumbnail(message.guild.iconURL())
       .setFooter({
         text: "Departamento Havena • Sistema de Contrato",
@@ -383,7 +383,7 @@ client.on("messageCreate", async (message) => {
       .setDescription(
         "Está com alguma dúvida ou problema?\nClique no botão abaixo para abrir um ticket privado com a equipe responsável.\n\n📌 Um atendente responderá o quanto antes."
       )
-      .setColor("#E54A2F")
+      .setColor("00f5ff")
       .setThumbnail(message.guild.iconURL())
       .setFooter({
         text: "Departamento Havena • Atendimento via Ticket",
